@@ -53,6 +53,13 @@ int main(int argc,const char ** argv)
 
         //--------------M1------------------
         handle_connection_fcfs(client_socket);
+        
+        //--------------M2------------------
+        // pthread_t t;
+        // int *pcilent= malloc(sizeof(int));
+        // *pcilent=client_socket;
+        // pthread_create(&t,NULL,handle_connection,pcilent);
+
     }
 
     return 0;
