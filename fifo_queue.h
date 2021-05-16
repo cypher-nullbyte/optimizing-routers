@@ -3,8 +3,8 @@
 
 struct node {
     struct node* next;
-    int *client_socket;
+    int *router_socket;
 };
 int* dequeue();
-void enqueue(int* client_socket);
+void enqueue(int* router_socket);
 #endif
