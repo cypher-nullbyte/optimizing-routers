@@ -9,14 +9,17 @@
 #include<strings.h>
 #include<linux/limits.h>
 #include<pthread.h>
+#include "fifo_queue.h"
 
 #define PORT 9999
 #define BUFSIZE 4096
 #define SOCKETERROR (-1)
 #define SERVER_BACKLOG_QUEUE_SIZE 100
+#define THREAD_POOL_SIZE 10
 
 
-
+pthread_t thread_pool[THREAD_POOL_SIZE];
+pthread_mutex_t mutex= PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct sockaddr_in SA_IN;
 typedef struct sockaddr SA;
@@ -32,6 +35,10 @@ int main(int argc,const char ** argv)
     int server_socket, client_socket, addr_size;
     SA_IN server_addr, client_addr;
 
+    for(int i=0;i<THREAD_POOL_SIZE;i++)
+    {
+        pthread_create(&thread_pool[i],NULL,thread_function,NULL);
+    }
 
     check((server_socket=socket(AF_INET, SOCK_STREAM,0)),"Failed to create Socket!");
 
@@ -55,11 +62,17 @@ int main(int argc,const char ** argv)
         // handle_connection_fcfs(client_socket);
         
         //--------------M2------------------
-        pthread_t t;
-        int *pcilent= malloc(sizeof(int));
-        *pcilent=client_socket;
-        pthread_create(&t,NULL,handle_connection,pcilent);
+        // pthread_t t;
+        // int *pcilent= malloc(sizeof(int));
+        // *pcilent=client_socket;
+        // pthread_create(&t,NULL,handle_connection,pcilent);
 
+        //--------------M3------------------
+        int *pclient=malloc(sizeof(int));
+        *pclient=client_socket;
+        pthread_mutex_lock(&mutex);
+        enqueue(pclient); //not thread_safe
+        pthread_mutex_unlock(&mutex);
     }
 
     return 0;
@@ -74,6 +87,19 @@ int check(int exp,const char* msg)
     }
     return exp;
 }   
+
+void* thread_function(void* arg)
+{
+    while(true)
+    {
+        int* pclient;
+        pthread_mutex_lock(&mutex);
+        pclient=dequeue();
+        pthread_mutex_unlock(&mutex);
+        if(pclient!=NULL)
+            handle_connection(pclient);
+    }
+}
 
 //--------------M1------------------
 // void handle_connection_fcfs(int client_socket)
@@ -120,7 +146,8 @@ int check(int exp,const char* msg)
 
 // }
 
-//--------------M2------------------
+
+
 void* handle_connection(void* p_client_socket)
 {
     int client_socket=*((int*)p_client_socket);
